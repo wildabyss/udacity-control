@@ -18,11 +18,9 @@
 #include <random>
 #include <sstream>
 #include <stdexcept>
-#include <string>
 #include <thread>
 #include <tuple>
 #include <vector>
-#include <iostream>
 #include <fstream>
 #include <typeinfo>
 
@@ -55,6 +53,7 @@
 #include <time.h>
 
 using namespace std;
+using namespace std::chono;
 using json = nlohmann::json;
 
 #define _USE_MATH_DEFINES
@@ -210,9 +209,8 @@ int main ()
   file_throttle.open("throttle_pid_data.txt", std::ofstream::out | std::ofstream::trunc);
   file_throttle.close();
 
-  time_t prev_timer;
-  time_t timer;
-  time(&prev_timer);
+  milliseconds prev_timer = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
+  milliseconds timer;
 
   // initialize pid steer
   /**
@@ -220,9 +218,9 @@ int main ()
   **/
 
   PID pid_steer = PID();
-  double Kp_steer = 1.0, Ki_steer = 0.1, Kd_steer = 0.1;
-  double steer_max = 1.2, steer_min = -1.2;
-  double steer_LA_time = 0.5;
+  const double Kp_steer = 0.1, Ki_steer = 0.02, Kd_steer = 0.01;
+  const double steer_max = 1.2, steer_min = -1.2;
+  const double steer_LA_time = 0.5;
   pid_steer.Init(Kp_steer, Ki_steer, Kd_steer, steer_max, steer_min);
 
 
@@ -232,11 +230,11 @@ int main ()
   **/
 
   PID pid_throttle = PID();
-  double Kp_spd = 1.0, Ki_spd = 0.1, Kd_spd = 0.1;
-  double throttle_max = 1.0, throttle_min = -1.0;
+  const double Kp_spd = 0.3, Ki_spd = 0.01, Kd_spd = 0.02;
+  const double throttle_max = 1.0, throttle_min = -1.0;
   pid_throttle.Init(Kp_spd, Ki_spd, Kd_spd, throttle_max, throttle_min);
 
-  h.onMessage([&pid_steer, &pid_throttle, &new_delta_time, &timer, &prev_timer, &i, &prev_timer](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode)
+  h.onMessage([&pid_steer, &pid_throttle, &new_delta_time, &timer, &prev_timer, &i, &steer_LA_time](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode)
   {
         auto s = hasData(data);
 
@@ -285,8 +283,8 @@ int main ()
           path_planner(x_points, y_points, v_points, yaw, velocity, goal, is_junction, tl_state, spirals_x, spirals_y, spirals_v, best_spirals);
 
           // Save time and compute delta time
-          time(&timer);
-          new_delta_time = difftime(timer, prev_timer);
+          timer = duration_cast<milliseconds>(system_clock::now().time_since_epoch());
+          new_delta_time = static_cast<double>((timer - prev_timer).count())/1000.0;
           prev_timer = timer;
 
           ////////////////////////////////////////
@@ -310,19 +308,13 @@ int main ()
           // Compute look-ahead
           double x_LA = velocity*steer_LA_time;
           // Transform trajectory to ego frame
-          vector<double> traj_ego_x;
-          vector<double> traj_ego_y;
-          for (int i = 0; i < x_points.size(); ++i){
-            double dx_ENU = x_points[0] - x_position, dy_ENU = y_points[0] - y_position;
+          for (int i = 0; i < 1; ++i){
+            double dx_ENU = x_points[i] - x_position, dy_ENU = y_points[i] - y_position;
 
-            double x_ego = dx_ENU*cos(yaw) + dy_ENU*sin(yaw), y_ego = -dx_ENU*sin(yaw) + dy_ENU*cos(yaw);
-            traj_ego_x.push_back(x_ego);
-            traj_ego_y.push_back(y_ego);
+            double x_ego = dx_ENU*cos(yaw) + dy_ENU*sin(yaw);
+            double y_ego = -dx_ENU*sin(yaw) + dy_ENU*cos(yaw);
 
-            // Stop updating once we passed the lookahead
-            if (x_LA >= x_ego) {
-              error_steer = y_ego;
-            }
+            error_steer = y_ego;
           }
 
           /**
