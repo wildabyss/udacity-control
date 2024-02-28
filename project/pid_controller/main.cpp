@@ -229,7 +229,7 @@ int main ()
   **/
 
   PID pid_throttle = PID();
-  const double Kp_spd = 0.5, Ki_spd = 0.05, Kd_spd = 0.02;
+  const double Kp_spd = 0.3, Ki_spd = 0.05, Kd_spd = 0.02;
   const double throttle_max = 1.0, throttle_min = -1.0;
   pid_throttle.Init(Kp_spd, Ki_spd, Kd_spd, throttle_max, throttle_min);
 
