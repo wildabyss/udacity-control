@@ -229,7 +229,7 @@ int main ()
   **/
 
   PID pid_throttle = PID();
-  const double Kp_spd = 0.3, Ki_spd = 0.01, Kd_spd = 0.02;
+  const double Kp_spd = 0.5, Ki_spd = 0.05, Kd_spd = 0.02;
   const double throttle_max = 1.0, throttle_min = -1.0;
   pid_throttle.Init(Kp_spd, Ki_spd, Kd_spd, throttle_max, throttle_min);
 
@@ -312,14 +312,26 @@ int main ()
               // Find point normal to path segment from vehicle position
               double rx = x_points[j] - x_points[j-1], ry = y_points[j] - y_points[j-1];
               double k = ((x_position*rx + y_position*ry) - (x_points[j-1]*rx + y_points[j-1]*ry))/(rx*rx + ry*ry);
+              double pnorm_x = k*rx+x_points[j-1], pnorm_y = k*ry+y_points[j-1];
+              // Find whether veh is left or right of the traj through cross product
+              double vx = x_position - pnorm_x, vy = y_position - pnorm_y;
+              double orientation = (rx*vy-ry*vx > 0) ? -1:1;
+              // Find normal distance to traj
+              double dist_to_seg = distance(x_position, y_position, pnorm_x, pnorm_y);
 
-              double dist_to_seg = distance(x_position, y_position, k*rx+x_points[j-1], k*ry+y_points[j-1]);
               if (j == 1){
-                // First segment, we can extrapolate to ego
-                error_steer = dist_to_seg;
-              } else if (k >= 0.0 && k <= 1.0 && dist_to_seg < error_steer) {
-                error_steer = dist_to_seg;
+                if (k <= 1.0){
+                  // First segment, we can extrapolate to ego
+                  error_steer = orientation*dist_to_seg;
+                } else {
+                  // We are ahead of first segment, just initialize to large value
+                  error_steer = 1000.0;
+                }
+              } else if (k >= 0.0 && k <= 1.0 && dist_to_seg < fabs(error_steer)) {
+                error_steer = orientation*dist_to_seg;
               }
+
+              cout<<"x point: " << x_points[j] << " y point: " << y_points[j] << " veh x: " << x_position << " veh y: " << y_position << " k: " << k << " dist: " << orientation*dist_to_seg << endl;
             }
           }
           
