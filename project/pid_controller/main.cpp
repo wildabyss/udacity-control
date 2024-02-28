@@ -53,7 +53,7 @@
 #include <time.h>
 
 using namespace std;
-using namespace std::chono;
+using namespace std::chrono;
 using json = nlohmann::json;
 
 #define _USE_MATH_DEFINES
@@ -220,7 +220,6 @@ int main ()
   PID pid_steer = PID();
   const double Kp_steer = 0.1, Ki_steer = 0.02, Kd_steer = 0.01;
   const double steer_max = 1.2, steer_min = -1.2;
-  const double steer_LA_time = 0.5;
   pid_steer.Init(Kp_steer, Ki_steer, Kd_steer, steer_max, steer_min);
 
 
@@ -234,7 +233,7 @@ int main ()
   const double throttle_max = 1.0, throttle_min = -1.0;
   pid_throttle.Init(Kp_spd, Ki_spd, Kd_spd, throttle_max, throttle_min);
 
-  h.onMessage([&pid_steer, &pid_throttle, &new_delta_time, &timer, &prev_timer, &i, &steer_LA_time](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode)
+  h.onMessage([&pid_steer, &pid_throttle, &new_delta_time, &timer, &prev_timer, &i](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode)
   {
         auto s = hasData(data);
 
@@ -305,17 +304,25 @@ int main ()
           /**
           * TODO (step 3): compute the steer error (error_steer) from the position and the desired trajectory
           **/
-          // Compute look-ahead
-          double x_LA = velocity*steer_LA_time;
-          // Transform trajectory to ego frame
-          for (int i = 0; i < 1; ++i){
-            double dx_ENU = x_points[i] - x_position, dy_ENU = y_points[i] - y_position;
+          
+          if (x_points.size() == 1){
+            error_steer = distance(x_points[0], y_points[0], x_position, y_position);
+          } else {
+            for (int j = 1; j < x_points.size(); ++j){
+              // Find point normal to path segment from vehicle position
+              double rx = x_points[j] - x_points[j-1], ry = y_points[j] - y_points[j-1];
+              double k = ((x_position*rx + y_position*ry) - (x_points[j-1]*rx + y_points[j-1]*ry))/(rx*rx + ry*ry);
 
-            double x_ego = dx_ENU*cos(yaw) + dy_ENU*sin(yaw);
-            double y_ego = -dx_ENU*sin(yaw) + dy_ENU*cos(yaw);
-
-            error_steer = y_ego;
+              double dist_to_seg = distance(x_position, y_position, k*rx+x_points[j-1], k*ry+y_points[j-1]);
+              if (j == 1){
+                // First segment, we can extrapolate to ego
+                error_steer = dist_to_seg;
+              } else if (k >= 0.0 && k <= 1.0 && dist_to_seg < error_steer) {
+                error_steer = dist_to_seg;
+              }
+            }
           }
+          
 
           /**
           * TODO (step 3): uncomment these lines
