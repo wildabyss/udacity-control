@@ -1,7 +1,21 @@
 // Answer the following questions:
 
 // Add the plots to your report and explain them (describe what you see)
+
+Plots and screenshot can be found in the screenshot directory. Generally, speed tracking is well-damped. Lateral tracking is somewhat oscillatory due to lack of feedforward.
+
 // What is the effect of the PID according to the plots, how each part of the PID affects the control command?
+
+Proportional gain increases the rate of response, but introduces overshoots and oscillations. Integral gain zeros out the steady-state error, but can introduce oscillations as well. Derivative gain decreases the settling time, but can destabilize the system when over-gained.
+
 // How would you design a way to automatically tune the PID parameters?
+
+One way is to design the gains targeting rise-time, settling time and steady-state error assuming a step input. The vehicle plant model is linear and we can introduce linear disturbances.
+
 // PID controller is a model free controller, i.e. it does not use a model of the car. Could you explain the pros and cons of this type of controller?
+
+Model-free means that the PID controller is generally robust to model variation. However, lack of model also makes performance suffer since the gains are agnostic to any learning on the model.
+
 // (Optional) What would you do to improve the PID controller?
+
+We can add feedforward to speed up the response, since we're given a trajectory over a horizon.
