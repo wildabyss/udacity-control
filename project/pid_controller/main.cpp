@@ -218,7 +218,7 @@ int main ()
   **/
 
   PID pid_steer = PID();
-  const double Kp_steer = 0.1, Ki_steer = 0.02, Kd_steer = 0.01;
+  const double Kp_steer = 0.1, Ki_steer = 0.005, Kd_steer = 0.01;
   const double steer_max = 1.2, steer_min = -1.2;
   pid_steer.Init(Kp_steer, Ki_steer, Kd_steer, steer_max, steer_min);
 
@@ -229,7 +229,7 @@ int main ()
   **/
 
   PID pid_throttle = PID();
-  const double Kp_spd = 0.3, Ki_spd = 0.05, Kd_spd = 0.02;
+  const double Kp_spd = 0.2, Ki_spd = 0.03, Kd_spd = 0.02;
   const double throttle_max = 1.0, throttle_min = -1.0;
   pid_throttle.Init(Kp_spd, Ki_spd, Kd_spd, throttle_max, throttle_min);
 
