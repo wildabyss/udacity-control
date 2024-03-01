@@ -19,3 +19,4 @@ Model-free means that the PID controller is generally robust to model variation.
 // (Optional) What would you do to improve the PID controller?
 
 We can add feedforward to speed up the response, since we're given a trajectory over a horizon.
+The sampling rate of the controller is very low. It would benefit by speeding up the rate of localization and control.
