@@ -218,6 +218,10 @@ int main ()
   **/
 
   PID pid_steer = PID();
+  // Too much overshoot and undershoot
+  //const double Kp_steer = 0.2, Ki_steer = 0.01, Kd_steer = 0.02;
+  // Too anemic
+  //const double Kp_steer = 0.05, Ki_steer = 0.01, Kd_steer = 0.02;
   const double Kp_steer = 0.2, Ki_steer = 0.002, Kd_steer = 0.02;
   const double steer_max = 1.2, steer_min = -1.2;
   pid_steer.Init(Kp_steer, Ki_steer, Kd_steer, steer_max, steer_min);
@@ -229,6 +233,10 @@ int main ()
   **/
 
   PID pid_throttle = PID();
+  // Too much oscillation
+  //const double Kp_spd = 0.3, Ki_spd = 0.1, Kd_spd = 0.00;
+  // Too anemic
+  //const double Kp_spd = 0.05, Ki_spd = 0.01, Kd_spd = 0.02;
   const double Kp_spd = 0.1, Ki_spd = 0.03, Kd_spd = 0.00;
   const double throttle_max = 1.0, throttle_min = -1.0;
   pid_throttle.Init(Kp_spd, Ki_spd, Kd_spd, throttle_max, throttle_min);
@@ -306,7 +314,16 @@ int main ()
           **/
 
           // Compute CTE as lateral ego distance to the first point in the trajectory
-          error_steer = -sin(yaw)*(x_points[0] - x_position) + cos(yaw)*(y_points[0] - y_position);
+          for (int j = 1; j < x_points.size(); ++j){
+            double dx = x_points[j] - x_position, dy = y_points[j] - y_position;
+            double x_point_ego = cos(yaw)*dx + sin(yaw)*dy, y_point_ego = -sin(yaw)*dx + cos(yaw)*dy;
+            error_steer = y_point_ego;
+
+            // No need to look further if this is the first point ahead of ego
+            if (x_point_ego >= 0){
+              break;
+            }
+          }
           
           /*if (x_points.size() == 1){
             // Segment is just a single point. Use vehicle yaw to calculate ego distance
