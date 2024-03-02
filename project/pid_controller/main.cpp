@@ -267,10 +267,6 @@ int main ()
           	vector<double> x_obst = data["obst_x"];
           	vector<double> y_obst = data["obst_y"];
           	set_obst(x_obst, y_obst, obstacles, have_obst);
-          	
-          	for (int j =0; j<x_obst.size(); j++){
-          	cout << "x_obst: " << x_obst[j] << " y_obst: " << y_obst[j] <<endl;
-          	}
           }
 
           State goal;
@@ -308,36 +304,45 @@ int main ()
           /**
           * TODO (step 3): compute the steer error (error_steer) from the position and the desired trajectory
           **/
+
+          // Compute CTE as lateral ego distance to the first point in the trajectory
+          error_steer = -sin(yaw)*(x_points[0] - x_position) + cos(yaw)*(y_points[0] - y_position);
           
-          if (x_points.size() == 1){
-            error_steer = distance(x_points[0], y_points[0], x_position, y_position);
+          /*if (x_points.size() == 1){
+            // Segment is just a single point. Use vehicle yaw to calculate ego distance
+            error_steer = -sin(yaw)*(x_points[0] - x_position) + cos(yaw)*(y_points[0] - y_position);
           } else {
             for (int j = 1; j < x_points.size(); ++j){
-              // Find point normal to path segment from vehicle position
+              // Segment length
               double rx = x_points[j] - x_points[j-1], ry = y_points[j] - y_points[j-1];
-              double k = ((x_position*rx + y_position*ry) - (x_points[j-1]*rx + y_points[j-1]*ry))/(rx*rx + ry*ry);
-              double pnorm_x = k*rx+x_points[j-1], pnorm_y = k*ry+y_points[j-1];
-              // Find whether veh is left or right of the traj through cross product
-              double vx = x_position - pnorm_x, vy = y_position - pnorm_y;
-              double orientation = (rx*vy-ry*vx > 0) ? -1:1;
-              // Find normal distance to traj
-              double dist_to_seg = distance(x_position, y_position, pnorm_x, pnorm_y);
+              if (rx*rx + ry*ry < 1e-6) {
+                // Segment is just a single point. Use vehicle yaw to calculate ego distance
+                error_steer = -sin(yaw)*(x_points[j] - x_position) + cos(yaw)*(y_points[j] - y_position);
+              } else {
+                // Find point normal to path segment from vehicle position
+                double k = ((x_position*rx + y_position*ry) - (x_points[j-1]*rx + y_points[j-1]*ry))/(rx*rx + ry*ry);
+                double pnorm_x = k*rx+x_points[j-1], pnorm_y = k*ry+y_points[j-1];
+                // Find whether veh is left or right of the traj through cross product
+                double vx = x_position - pnorm_x, vy = y_position - pnorm_y;
+                double orientation = (rx*vy-ry*vx > 0) ? -1:1;
+                // Find normal distance to traj
+                double dist_to_seg = distance(x_position, y_position, pnorm_x, pnorm_y);
 
-              if (j == 1){
-                if (k <= 1.0){
-                  // First segment, we can extrapolate to ego
+                if (j == 1){
+                  if (k <= 1.0){
+                    // First segment, we can extrapolate to ego
+                    error_steer = orientation*dist_to_seg;
+                  } else {
+                    // We are ahead of first segment, just initialize to large value
+                    error_steer = 1000.0;
+                  }
+                } else if (k >= 0.0 && k <= 1.0 && dist_to_seg < fabs(error_steer)) {
                   error_steer = orientation*dist_to_seg;
-                } else {
-                  // We are ahead of first segment, just initialize to large value
-                  error_steer = 1000.0;
                 }
-              } else if (k >= 0.0 && k <= 1.0 && dist_to_seg < fabs(error_steer)) {
-                error_steer = orientation*dist_to_seg;
               }
-
-              cout<<"x point: " << x_points[j] << " y point: " << y_points[j] << " veh x: " << x_position << " veh y: " << y_position << " k: " << k << " dist: " << orientation*dist_to_seg << endl;
             }
-          }
+
+          }*/
           
 
           /**

@@ -32,6 +32,7 @@
         "specialfunctions": "cpp",
         "splines": "cpp",
         "tensor": "cpp",
-        "limits": "cpp"
+        "limits": "cpp",
+        "iostream": "cpp"
     }
 }
